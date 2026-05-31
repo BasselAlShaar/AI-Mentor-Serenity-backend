@@ -1,9 +1,16 @@
 from openai import OpenAI
 from utils import format_history
+from dotenv import load_dotenv
 import os
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+load_dotenv()
 
+api_key = os.getenv("API_KEY")
+
+if not api_key:
+    raise ValueError("API_KEY is missing from environment variables")
+
+client = OpenAI(api_key=api_key)
 
 def detect_emotion(text):
     response = client.chat.completions.create(
