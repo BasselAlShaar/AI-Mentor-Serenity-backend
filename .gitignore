@@ -1,0 +1,46 @@
+# 🔐 Environment variables (IMPORTANT)
+.env
+*.env
+
+# 🧠 Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 🐍 Virtual environment
+venv/
+env/
+.venv/
+
+# 🧪 HuggingFace / model cache (VERY IMPORTANT for your project)
+.cache/
+huggingface/
+models/
+transformers_cache/
+
+# 📦 OS files
+.DS_Store
+Thumbs.db
+
+# 🧪 Logs
+*.log
+
+# 🧰 IDE files
+.vscode/
+.idea/
+
+# 🚀 Flask debug
+instance/
+
+# 🧪 pytest / testing
+.pytest_cache/
+
+# 🧠 Jupyter notebooks (optional)
+.ipynb_checkpoints/
+
+# 🔑 NEVER commit API keys
+*.key
+secrets.json
+
+.sixth
