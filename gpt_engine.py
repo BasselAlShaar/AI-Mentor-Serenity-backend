@@ -14,7 +14,7 @@ client = OpenAI(api_key=api_key)
 
 def detect_emotion(text):
     response = client.chat.completions.create(
-        model="gpt-5-mini",
+        model="gpt-4o-mini",
         messages=[
             {
                 "role": "system",
