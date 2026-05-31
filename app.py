@@ -3,15 +3,16 @@ print("🔥 APP.PY IS RUNNING")
 import traceback
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from emotion_model import detect_emotion
+
 from gpt_engine import generate_response
 from utils import detect_crisis
 
 app = Flask(__name__)
 
-# ✅ ONLY ONE CORS CONFIG
+# Enable CORS for all routes
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+# In-memory chat history
 chat_history = {}
 
 
@@ -19,51 +20,57 @@ chat_history = {}
 def home():
     return "Server is running"
 
-@app.route("/chat", methods=["GET", "POST", "OPTIONS"])
+
+@app.route("/chat", methods=["POST", "OPTIONS"])
 def chat():
 
-    # ✅ ALWAYS handle preflight FIRST
+    # Handle CORS preflight requests
     if request.method == "OPTIONS":
         return "", 200
 
     try:
-        # ✅ safe JSON parsing
         data = request.get_json(silent=True) or {}
 
         user_id = data.get("user_id", "default")
         message = data.get("message", "").strip()
 
         if not message:
-            return jsonify({"error": "Empty message"}), 400
+            return jsonify({
+                "error": "Message cannot be empty"
+            }), 400
 
         history = chat_history.get(user_id, [])
 
-        # 🔥 wrap risky functions (VERY IMPORTANT)
-        try:
-            emotion, score = detect_emotion(message)
-        except Exception as e:
-            print("Emotion model error:", e)
-            emotion, score = "neutral", 0.0
-
+        # Crisis detection
         if detect_crisis(message):
             return jsonify({
-                "response": "You're not alone 💙 please reach out for support.",
-                "emotion": emotion,
+                "response": "You're not alone 💙 Please reach out to someone you trust and seek immediate support.",
+                "emotion": "concern",
                 "crisis": True
             })
 
-        # 🔥 GPT call safety
         try:
-            ai_response = generate_response(message, emotion, history)
+            # generate_response must return:
+            # (ai_response, emotion)
+            ai_response, emotion = generate_response(
+                message,
+                history
+            )
+
         except Exception as e:
-            print("GPT error:", e)
+            print("GPT ERROR:")
+            print(e)
+
             return jsonify({
                 "response": "I'm having trouble responding right now 💔",
-                "emotion": emotion,
+                "emotion": "neutral",
                 "crisis": False
             }), 500
 
+        # Save conversation
         history.append((message, ai_response))
+
+        # Keep only latest 20 exchanges
         chat_history[user_id] = history[-20:]
 
         return jsonify({
@@ -72,9 +79,12 @@ def chat():
             "crisis": False
         })
 
-    except Exception as e:
+    except Exception:
         print(traceback.format_exc())
-        return jsonify({"error": str(e)}), 500
+
+        return jsonify({
+            "error": "Internal Server Error"
+        }), 500
 
 
 if __name__ == "__main__":

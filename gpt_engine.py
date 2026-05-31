@@ -2,47 +2,86 @@ from openai import OpenAI
 from utils import format_history
 import os
 
-client = OpenAI(api_key=os.getenv("API_KEY"))  # ⚠️ keep this in env variable in production
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 
-def generate_response(user_input, emotion_label, history=None):
-    if history is None:
-        history = []
-
-    # keep only last 6 messages to control cost
-    history = history[-6:]
-
-    prompt = f"""
-You are Serenity, a kind, empathetic mental health companion AI.
-
-The user feels {emotion_label.lower()}.
-
-Recent conversation:
-{format_history(history)}
-
-User says: "{user_input}"
-
-Respond in a warm, supportive, and compassionate tone.
-Do not be robotic. Keep it natural and comforting.
-"""
-
+def detect_emotion(text):
     response = client.chat.completions.create(
-        model="gpt-4o-mini",  
+        model="gpt-5-mini",
         messages=[
             {
                 "role": "system",
                 "content": (
-                    "You are Serenity, a warm, empathetic AI companion. "
-                    "You provide emotional support in a natural conversational way."
-                ),
+                    "Classify the user's emotion. "
+                    "Return ONLY one word from this list:\n"
+                    "joy, sadness, anger, fear, surprise, neutral"
+                )
             },
             {
                 "role": "user",
-                "content": prompt,
-            },
+                "content": text
+            }
         ],
-        temperature=0.85,
-        max_tokens=200,
+        max_completion_tokens=5
     )
 
-    return response.choices[0].message.content.strip()
+    emotion = response.choices[0].message.content.strip().lower()
+
+    allowed = {
+        "joy",
+        "sadness",
+        "anger",
+        "fear",
+        "surprise",
+        "neutral"
+    }
+
+    return emotion if emotion in allowed else "neutral"
+
+
+def generate_response(user_input, history=None):
+
+    if history is None:
+        history = []
+
+    history = history[-6:]
+
+    emotion = detect_emotion(user_input)
+
+    prompt = f"""
+You are Serenity, a kind and empathetic emotional support companion.
+
+Detected emotion: {emotion}
+
+Recent conversation:
+{format_history(history)}
+
+User says:
+{user_input}
+
+Respond warmly, naturally, and conversationally.
+Keep responses under 150 words.
+"""
+
+    response = client.chat.completions.create(
+        model="gpt-5-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are Serenity, a warm, supportive AI companion. "
+                    "Be empathetic, encouraging, and conversational."
+                )
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        max_completion_tokens=200
+    )
+
+    return (
+        response.choices[0].message.content.strip(),
+        emotion
+    )

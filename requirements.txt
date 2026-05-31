@@ -1,6 +1,5 @@
 openai
-transformers
-torch
 flask
 flask_cors
 dotenv
+gunicorn
